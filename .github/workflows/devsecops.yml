@@ -19,7 +19,7 @@ jobs:
         env:
           POSTGRES_DB: ousl_db
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ishara123
+          POSTGRES_PASSWORD: ci_test_password
         ports:
           - 5432:5432
         options: >-
@@ -34,9 +34,11 @@ jobs:
       LOCAL_IMAGE: ousl-student-api
       ECR_REPOSITORY: student-api-eei6369-lab
       AWS_REGION: ap-southeast-2
+
       DB_URL: jdbc:postgresql://localhost:5432/ousl_db?sslmode=disable
       DB_USERNAME: postgres
       DB_PASSWORD: ci_test_password
+
       SONAR_ORGANIZATION: ishara465
       SONAR_PROJECT_KEY: Ishara465_EEI6369-api-lab
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -50,12 +52,24 @@ jobs:
       - name: Verify project paths and Sonar configuration
         shell: bash
         run: |
-          test -f "$DOCKERFILE_PATH" || { echo "::error::Missing $DOCKERFILE_PATH"; exit 1; }
-          test -f "$APP_DIRECTORY/pom.xml" || { echo "::error::Missing $APP_DIRECTORY/pom.xml"; exit 1; }
-          test -d "$APP_DIRECTORY/src" || { echo "::error::Missing $APP_DIRECTORY/src"; exit 1; }
+          test -f "$DOCKERFILE_PATH" || {
+            echo "::error::Missing $DOCKERFILE_PATH"
+            exit 1
+          }
+
+          test -f "$APP_DIRECTORY/pom.xml" || {
+            echo "::error::Missing $APP_DIRECTORY/pom.xml"
+            exit 1
+          }
+
+          test -d "$APP_DIRECTORY/src" || {
+            echo "::error::Missing $APP_DIRECTORY/src"
+            exit 1
+          }
+
           for key in SONAR_ORGANIZATION SONAR_PROJECT_KEY SONAR_TOKEN; do
             if [ -z "${!key}" ]; then
-              echo "::error::$key is missing. Check repository Actions variables and secrets."
+              echo "::error::$key is missing"
               exit 1
             fi
           done
@@ -70,12 +84,17 @@ jobs:
 
       - name: Build and test
         working-directory: ${{ env.APP_DIRECTORY }}
+        env:
+          SPRING_DATASOURCE_URL: ${{ env.DB_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ env.DB_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ env.DB_PASSWORD }}
         run: mvn -B -ntp clean verify
 
       - name: SonarCloud SAST and Quality Gate
         working-directory: ${{ env.APP_DIRECTORY }}
         run: >-
-          mvn -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar
+          mvn -B -ntp
+          org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.organization="$SONAR_ORGANIZATION"
           -Dsonar.projectKey="$SONAR_PROJECT_KEY"
@@ -83,7 +102,11 @@ jobs:
           -Dsonar.qualitygate.timeout=600
 
       - name: Build Container
-        run: docker build --pull -f "$DOCKERFILE_PATH" -t "$LOCAL_IMAGE:$GITHUB_SHA" "$APP_DIRECTORY"
+        run: |
+          docker build --pull \
+            -f "$DOCKERFILE_PATH" \
+            -t "$LOCAL_IMAGE:$GITHUB_SHA" \
+            "$APP_DIRECTORY"
 
       - name: Aqua Security Trivy Scan
         uses: aquasecurity/trivy-action@v0.36.0
@@ -122,10 +145,13 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           if [ "$ECR_REGISTRY" != "213527446433.dkr.ecr.ap-southeast-2.amazonaws.com" ]; then
-            echo "::error::AWS credentials do not point to the expected ECR registry. Check AWS account and region."
+            echo "::error::Unexpected AWS account or ECR region"
             exit 1
           fi
+
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+
           docker tag "$LOCAL_IMAGE:$GITHUB_SHA" "$IMAGE_URI"
           docker push "$IMAGE_URI"
+
           printf 'Published image: `%s`\n' "$IMAGE_URI" >> "$GITHUB_STEP_SUMMARY"
