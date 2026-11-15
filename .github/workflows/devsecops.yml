@@ -37,8 +37,8 @@ jobs:
       DB_URL: jdbc:postgresql://localhost:5432/ousl_db?sslmode=disable
       DB_USERNAME: postgres
       DB_PASSWORD: ci_test_password
-      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
-      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ishara465
+      SONAR_PROJECT_KEY: Ishara465_EEI6369-api-lab
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
