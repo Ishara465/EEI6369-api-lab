@@ -19,7 +19,7 @@ jobs:
         env:
           POSTGRES_DB: ousl_db
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_PASSWORD: ishara123
         ports:
           - 5432:5432
         options: >-
@@ -37,7 +37,7 @@ jobs:
 
       DB_URL: jdbc:postgresql://localhost:5432/ousl_db?sslmode=disable
       DB_USERNAME: postgres
-      DB_PASSWORD: ci_test_password
+      DB_PASSWORD: ishara123
 
       SONAR_ORGANIZATION: ishara465
       SONAR_PROJECT_KEY: Ishara465_EEI6369-api-lab
